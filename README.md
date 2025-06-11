@@ -1,3 +1,143 @@
+# Stock Analysis React App
+
+A single-page React application for comparing two time-series of closing prices using a variety of technical indicators. It reads a CSV file of two assets’ daily closes and computes:
+
+- **Daily Returns** (simple or log)  
+- **Moving Average** (SMA or EMA)  
+- **Rolling Volatility** (standard deviation of returns)  
+- **Daily Performance Comparison** (A vs. B vs. tie)  
+- **Bollinger Bands** (upper, middle, lower)  
+- **Relative Strength Index (RSI)**  
+
+Everything updates live as you tweak your parameters.
+
+---
+
+## Features
+
+- **Return Type**: switch between **Simple** and **Log** returns  
+- **Window Size**: length of look-back for MA, volatility, Bollinger Bands  
+- **Smoothing**: choose **SMA** or **EMA**  
+- **BB Multiplier**: σ-multiplier for Bollinger Bands  
+- **RSI Period**: look-back length for RSI  
+
+All indicators are rendered in a single HTML table for easy side-by-side analysis.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js** (≥ v16)  
+- **npm** or **yarn**  
+- **Docker** (optional, for containerized launch)
+
+### Clone & Install
+
+```bash
+git clone https://github.com/andrewwg2/stock_analysis.git
+cd stock_analysis
+npm install
+````
+
+### Project Structure
+
+```
+stock_analysis/
+├── public/
+│   └── sample-data.csv     ← CSV file with columns: date, A_close, B_close
+├── src/
+│   ├── App.jsx             ← Main UI & data-flow
+│   ├── dataLoader.js       ← CSV parser
+│   └── analysis.js         ← All indicator functions
+├── package.json
+└── Dockerfile
+```
+
+---
+
+## Running Locally
+
+1. **Start the dev server**
+
+   ```bash
+   npm start
+   ```
+
+2. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+3. The app will fetch `public/sample-data.csv`, parse it, and display the table once loaded.
+
+---
+
+## Docker
+
+The app is Docker-deployable:
+
+1. **Build the image**
+
+   ```bash
+   docker build -t stock-analysis .
+   ```
+
+2. **Run the container**
+
+   ```bash
+   docker run --rm -it \
+     -p 3000:3000 \
+     -v "$PWD":/app \
+     -w /app \
+     stock-analysis \
+     sh -c "npm install && npm start"
+   ```
+
+3. In your host browser, visit [http://localhost:3000](http://localhost:3000).
+
+> **Tip:** The `-v "$PWD":/app` bind-mounts your code so you can tweak files locally and see hot reloads.
+
+---
+
+## Controls & UI
+
+* **Return type** dropdown → choose **Simple** vs. **Log**
+* **Window size** input → number of days (≥ 1)
+* **Smoothing** dropdown → **SMA** or **EMA**
+* **BB Multiplier** input → positive decimal
+* **RSI Period** input → positive integer (clamped to data length)
+
+All changes auto-recompute and update the table.
+
+---
+
+## Testing
+
+This project currently has no automated tests configured. If you add tests (e.g. with Vitest or Jest), place them in `src/__tests__/` and run:
+
+```bash
+npm test
+```
+
+---
+
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/foo`)
+3. Commit your changes (`git commit -m "feat: add foo"`)
+4. Push to your branch (`git push origin feature/foo`)
+5. Open a Pull Request
+
+---
+
+## License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+
+```
+```
+
+
 # Docker Dev Env for JS
 
 # Running tests
@@ -9,57 +149,3 @@ This command builds a docker image with the code of this repository and runs the
 docker run -t my_app ./run_tests.sh
 ```
 
-```
-[+] Building 0.1s (10/10) FINISHED                                                                   docker:default
- => [internal] load build definition from Dockerfile                                                           0.0s
- => => transferring dockerfile: 226B                                                                           0.0s
- => [internal] load metadata for docker.io/library/node:22.14.0-alpine3.21@sha256:9bef0ef1e268f60627da9ba7d76  0.0s
- => [internal] load .dockerignore                                                                              0.0s
- => => transferring context: 154B                                                                              0.0s
- => [1/5] FROM docker.io/library/node:22.14.0-alpine3.21@sha256:9bef0ef1e268f60627da9ba7d7605e8831d5b56ad0748  0.0s
- => [internal] load build context                                                                              0.0s
- => => transferring context: 1.07kB                                                                            0.0s
- => CACHED [2/5] WORKDIR /app                                                                                  0.0s
- => CACHED [3/5] COPY package.json package-lock.json .                                                         0.0s
- => CACHED [4/5] RUN npm install                                                                               0.0s
- => CACHED [5/5] COPY . .                                                                                      0.0s
- => exporting to image                                                                                         0.0s
- => => exporting layers                                                                                        0.0s
- => => writing image sha256:80007dbaeba9813527f4a4e663e6d773256f6e42f1b3c3fdf713fe45b4897c2f                   0.0s
- => => naming to docker.io/library/my_app                                                                      0.0s
-
-
-> my-react-app@0.0.0 test
-> vitest
-
-
- RUN  v3.1.1 /app
-
- ✓ src/App.test.jsx (2 tests) 176ms
- ✓ test/basic.test.js (3 tests) 6ms
- ✓ test/suite.test.js (3 tests) 7ms
-
- Test Files  3 passed (3)
-      Tests  8 passed (8)
-   Start at  22:08:27
-   Duration  3.74s (transform 93ms, setup 361ms, collect 282ms, tests 190ms, environment 1.95s, prepare 392ms)
-```
-
-# Running a specific test
-
-This example runs all tests matching the name "basic":
-
-```sh
-./build_docker.sh my_app
-docker run -t my_app ./run_tests.sh basic
-```
-
-
-# Running a vite dev server
-
-Run this command to enable hot reloading via docker.
-
-```sh
-./build_docker.sh my_app
-docker run --network=host -v .:/app -it my_app npm exec vite dev --host
-```
