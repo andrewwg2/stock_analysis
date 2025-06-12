@@ -1,5 +1,5 @@
 // src/App.jsx
-// Version 1
+// Version 1 + Tailwind styling
 import React, { useEffect, useState } from 'react'
 import { parseCsvFile } from './dataLoader.js'
 import {
@@ -54,29 +54,23 @@ export default function App() {
         const parsed = await parseCsvFile(file)
         setData(parsed)
 
-        // determine effective RSI period
         const maxRsiForData = Math.max(parsed.length - 2, 1)
         const effectiveRsi = Math.min(inputRsiPeriod, maxRsiForData)
 
-        // price arrays
         const valsA = parsed.map(d => d.A_close)
         const valsB = parsed.map(d => d.B_close)
         const pricesA = parsed.map(d => ({ date: d.date, close: d.A_close }))
         const pricesB = parsed.map(d => ({ date: d.date, close: d.B_close }))
 
-        // returns
         const rawA = returnType === 'simple'
           ? calculateDailyReturns(pricesA)
           : calculateLogReturns(pricesA)
         const rawB = returnType === 'simple'
           ? calculateDailyReturns(pricesB)
           : calculateLogReturns(pricesB)
-        const fullA = [{ date: pricesA[0].date, return: null }, ...rawA]
-        const fullB = [{ date: pricesB[0].date, return: null }, ...rawB]
-        setRetA(fullA)
-        setRetB(fullB)
+        setRetA([{ date: pricesA[0].date, return: null }, ...rawA])
+        setRetB([{ date: pricesB[0].date, return: null }, ...rawB])
 
-        // moving averages
         setMaA(
           smoothing === 'SMA'
             ? movingAverage(valsA, windowSize)
@@ -88,20 +82,17 @@ export default function App() {
             : exponentialMovingAverage(valsB, windowSize)
         )
 
-        // rolling volatility
-        const volRawA = rollingVolatility(rawA.map(r => r.return), windowSize)
-        const volRawB = rollingVolatility(rawB.map(r => r.return), windowSize)
-        setVolA([null, ...volRawA])
-        setVolB([null, ...volRawB])
+        setVolA([null, ...rollingVolatility(rawA.map(r => r.return), windowSize)])
+        setVolB([null, ...rollingVolatility(rawB.map(r => r.return), windowSize)])
 
-        // comparison
-        setComparison(compareDailyPerformance(fullA, fullB))
+        setComparison(compareDailyPerformance(
+          [{ date: pricesA[0].date, return: null }, ...rawA],
+          [{ date: pricesB[0].date, return: null }, ...rawB]
+        ))
 
-        // Bollinger Bands
         setBandsA(bollingerBands(valsA, windowSize, bbMultiplier))
         setBandsB(bollingerBands(valsB, windowSize, bbMultiplier))
 
-        // RSI using effective period
         setRsiA(relativeStrengthIndex(valsA, effectiveRsi))
         setRsiB(relativeStrengthIndex(valsB, effectiveRsi))
       } catch (err) {
@@ -112,141 +103,159 @@ export default function App() {
     fetchAndAnalyze()
   }, [windowSizeRaw, returnType, smoothing, bbMultiplierRaw, rsiPeriodRaw])
 
-  if (error) return <div>Error: {error}</div>
-  if (!data.length) return <div>Loading…</div>
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-800 text-red-400">
+        Error: {error}
+      </div>
+    )
+  }
+  if (!data.length) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-800 text-gray-300">
+        Loading…
+      </div>
+    )
+  }
 
-  // determine header label
   const maxRsiForDisplay = Math.max(data.length - 2, 1)
   const displayRsiPeriod = Math.min(inputRsiPeriod, maxRsiForDisplay)
 
   return (
-    <div>
+    <div className ="!flex justify-center align-center !min-w-100%">
+    <div className="min-h-screen bg-gray-800 text-gray-100 p-6">
       {/* Controls */}
-      <div style={{ marginBottom: 16 }}>
-        <label>
-          Return type:
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+        <label className="flex flex-col text-sm">
+          <span>Return type</span>
           <select
             value={returnType}
             onChange={e => setReturnType(e.target.value)}
-            style={{ marginLeft: 4 }}
+            className="mt-1 p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="simple">Simple</option>
             <option value="log">Log</option>
           </select>
         </label>
 
-        <label style={{ marginLeft: 16 }}>
-          Window size:
+        <label className="flex flex-col text-sm">
+          <span>Window size</span>
           <input
             type="number"
             min="1"
             placeholder="days"
             value={windowSizeRaw}
             onChange={e => setWindowSizeRaw(e.target.value)}
-            style={{ width: 60, marginLeft: 4 }}
+            className="mt-1 p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </label>
 
-        <label style={{ marginLeft: 16 }}>
-          Smoothing:
+        <label className="flex flex-col text-sm">
+          <span>Smoothing</span>
           <select
             value={smoothing}
             onChange={e => setSmoothing(e.target.value)}
-            style={{ marginLeft: 4 }}
+            className="mt-1 p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="SMA">SMA</option>
             <option value="EMA">EMA</option>
           </select>
         </label>
 
-        <label style={{ marginLeft: 16 }}>
-          BB Multiplier:
+        <label className="flex flex-col text-sm">
+          <span>BB Multiplier</span>
           <input
             type="number"
             min="0.1"
             step="0.1"
             value={bbMultiplierRaw}
             onChange={e => setBbMultiplierRaw(e.target.value)}
-            style={{ width: 60, marginLeft: 4 }}
+            className="mt-1 p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </label>
 
-        <label style={{ marginLeft: 16 }}>
-          RSI Period:
+        <label className="flex flex-col text-sm">
+          <span>RSI Period</span>
           <input
             type="number"
             min="1"
             value={rsiPeriodRaw}
             onChange={e => setRsiPeriodRaw(e.target.value)}
-            style={{ width: 60, marginLeft: 4 }}
+            className="mt-1 p-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </label>
       </div>
 
       {/* Data table */}
-      <table border="1" cellPadding="4" style={{ borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Return A (%)</th>
-            <th>Return B (%)</th>
-            <th data-testid="ma-header-a">{windowSize}-Day {smoothingLabel} A</th>
-            <th data-testid="ma-header-b">{windowSize}-Day {smoothingLabel} B</th>
-            <th>{windowSize}-Day Vol A (%)</th>
-            <th>{windowSize}-Day Vol B (%)</th>
-            <th>BB Upper A</th>
-            <th>BB Middle A</th>
-            <th>BB Lower A</th>
-            <th>BB Upper B</th>
-            <th>BB Middle B</th>
-            <th>BB Lower B</th>
-            <th>RSI A ({displayRsiPeriod})</th>
-            <th>RSI B ({displayRsiPeriod})</th>
-            <th>Winner</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, i) => {
-            const pctA = retA[i]?.return != null ? (retA[i].return * 100).toFixed(2) : '–'
-            const pctB = retB[i]?.return != null ? (retB[i].return * 100).toFixed(2) : '–'
-            const maValA = maA[i] != null ? maA[i].toFixed(2) : '–'
-            const maValB = maB[i] != null ? maB[i].toFixed(2) : '–'
-            const vA = volA[i] != null ? (volA[i] * 100).toFixed(2) : '–'
-            const vB = volB[i] != null ? (volB[i] * 100).toFixed(2) : '–'
-            const bA = bandsA[i] || {}
-            const bbA = bA.upper != null ? bA.upper.toFixed(2) : '–'
-            const bmA = bA.middle != null ? bA.middle.toFixed(2) : '–'
-            const blA = bA.lower != null ? bA.lower.toFixed(2) : '–'
-            const bB = bandsB[i] || {}
-            const bbB = bB.upper != null ? bB.upper.toFixed(2) : '–'
-            const bmB = bB.middle != null ? bB.middle.toFixed(2) : '–'
-            const blB = bB.lower != null ? bB.lower.toFixed(2) : '–'
-            const rAVal = rsiA[i] != null ? rsiA[i].toFixed(2) : '–'
-            const rBVal = rsiB[i] != null ? rsiB[i].toFixed(2) : '–'
-            const win = comparison[i]?.winner || '–'
-            return (
-              <tr key={`${row.date}-${i}`}>
-                <td>{row.date}</td>
-                <td>{pctA}</td>
-                <td>{pctB}</td>
-                <td>{maValA}</td>
-                <td>{maValB}</td>
-                <td>{vA}</td>
-                <td>{vB}</td>
-                <td>{bbA}</td>
-                <td>{bmA}</td>
-                <td>{blA}</td>
-                <td>{bbB}</td>
-                <td>{bmB}</td>
-                <td>{blB}</td>
-                <td>{rAVal}</td>
-                <td>{rBVal}</td>
-                <td>{win}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <div className="overflow-auto rounded-lg border border-gray-700">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-gray-700">
+            <tr>
+              {[
+                'Date', 
+                'Return A (%)', 
+                'Return B (%)',
+                `${windowSize}-Day ${smoothingLabel} A`,
+                `${windowSize}-Day ${smoothingLabel} B`,
+                `${windowSize}-Day Vol A (%)`,
+                `${windowSize}-Day Vol B (%)`,
+                'BB Upper A', 'BB Middle A', 'BB Lower A',
+                'BB Upper B', 'BB Middle B', 'BB Lower B',
+                `RSI A (${displayRsiPeriod})`, 
+                `RSI B (${displayRsiPeriod})`,
+                'Winner'
+              ].map((h, idx) => (
+                <th
+                  key={idx}
+                  className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-300"
+                  data-testid={h.includes('Day') && h.includes('A') ? 'ma-header-a' : undefined}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700">
+            {data.map((row, i) => {
+              const pctA = retA[i]?.return != null ? (retA[i].return * 100).toFixed(2) : '–'
+              const pctB = retB[i]?.return != null ? (retB[i].return * 100).toFixed(2) : '–'
+              const maValA = maA[i] != null ? maA[i].toFixed(2) : '–'
+              const maValB = maB[i] != null ? maB[i].toFixed(2) : '–'
+              const vA = volA[i] != null ? (volA[i] * 100).toFixed(2) : '–'
+              const vB = volB[i] != null ? (volB[i] * 100).toFixed(2) : '–'
+              const bA = bandsA[i] || {}
+              const bbA = bA.upper != null ? bA.upper.toFixed(2) : '–'
+              const bmA = bA.middle != null ? bA.middle.toFixed(2) : '–'
+              const blA = bA.lower != null ? bA.lower.toFixed(2) : '–'
+              const bB = bandsB[i] || {}
+              const bbB = bB.upper != null ? bB.upper.toFixed(2) : '–'
+              const bmB = bB.middle != null ? bB.middle.toFixed(2) : '–'
+              const blB = bB.lower != null ? bB.lower.toFixed(2) : '–'
+              const rAVal = rsiA[i] != null ? rsiA[i].toFixed(2) : '–'
+              const rBVal = rsiB[i] != null ? rsiB[i].toFixed(2) : '–'
+              const win = comparison[i]?.winner || '–'
+
+              return (
+                <tr
+                  key={`${row.date}-${i}`}
+                  className={i % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700'}
+                >
+                  {[
+                    row.date, pctA, pctB, maValA, maValB,
+                    vA, vB, bbA, bmA, blA, bbB, bmB, blB, rAVal, rBVal, win
+                  ].map((cell, idx) => (
+                    <td key={idx} className="px-3 py-2 whitespace-nowrap text-sm text-gray-200">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
+    </div>
+  
   )
 }
