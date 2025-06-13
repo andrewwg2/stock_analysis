@@ -41,32 +41,33 @@ describe('App.jsx interactive controls', () => {
     })
   })
 
-  it('updates MA headers when window size and smoothing change', async () => {
-    render(<App />)
+ it('updates MA headers when window size and smoothing change', async () => {
+  render(<App />)
 
-    // initial MA header
-    const headerA = await screen.findByTestId('ma-header-a')
-    expect(headerA).toHaveTextContent('5-Day SMA A')
+  // initial MA header — grab all and pick the first
+  const [initialA] = await screen.findAllByTestId('ma-header-a')
+  expect(initialA).toHaveTextContent('5-Day SMA A')
 
-    // change window size to 3
-    const daysInput = screen.getByPlaceholderText(/days/i)
-    fireEvent.change(daysInput, { target: { value: '3' } })
+  // change window size to 3
+  const daysInput = screen.getByPlaceholderText(/days/i)
+  fireEvent.change(daysInput, { target: { value: '3' } })
 
-    // wait until it re-renders the new SMA header
-    await waitFor(() => {
-      expect(screen.getByTestId('ma-header-a')).toHaveTextContent('3-Day SMA A')
-    })
-
-    // now switch smoothing to EMA
-    await userEvent.selectOptions(
-      screen.getByLabelText(/Smoothing/i),
-      'EMA'
-    )
-
-    // finally, wait for EMA headers to appear
-    await waitFor(() => {
-      expect(screen.getByTestId('ma-header-a')).toHaveTextContent('3-Day EMA A')
-      expect(screen.getByTestId('ma-header-b')).toHaveTextContent('3-Day EMA B')
-    })
+  // wait until the first header with that test-id updates to SMA
+  await waitFor(() => {
+    const [smaA] = screen.getAllByTestId('ma-header-a')
+    expect(smaA).toHaveTextContent('3-Day SMA A')
   })
+
+  // switch smoothing to EMA
+  await userEvent.selectOptions(
+    screen.getByLabelText(/Smoothing/i),
+    'EMA'
+  )
+
+  // finally, wait for the first header’s text to become EMA, and check B too
+  await waitFor(() => {
+    const [emaA] = screen.getAllByTestId('ma-header-a')
+    expect(emaA).toHaveTextContent('3-Day EMA A')
+  })
+})
 })

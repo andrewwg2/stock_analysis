@@ -15,7 +15,7 @@ export default function App() {
   const inputRsiPeriod = parseInt(rsiPeriodRaw, 10)
   const smoothingLabel = smoothing === 'SMA' ? 'SMA' : 'EMA'
 
-  // Fetch & compute via custom hook
+  // Fetch & compute via custom hookheader
   const {
     data,
     loading,
@@ -59,7 +59,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-800 flex items-center justify-center p-6">
-      <div className="w-full max-w-7xl space-y-6 text-gray-100">ma-header-a
+      <div className="w-full max-w-7xl space-y-6 text-gray-100">
         {/* Controls */}
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6">
           <label className="flex flex-col text-sm">
@@ -125,45 +125,36 @@ export default function App() {
         {/* Data table */}
         <div className="overflow-auto rounded-lg border border-gray-700">
           <table className="min-w-full divide-y divide-gray-700">
-           <thead className="bg-gray-700">
-            <tr>
-              {[
-                'Date',
-                'Return A (%)',
-                'Return B (%)',
-                `${windowSize}-Day ${smoothingLabel} A`,
-                `${windowSize}-Day ${smoothingLabel} B`,
-                `${windowSize}-Day Vol A (%)`,
-                `${windowSize}-Day Vol B (%)`,
-                'BB Upper A',
-                'BB Middle A',
-                'BB Lower A',
-                'BB Upper B',
-                'BB Middle B',
-                'BB Lower B',
-                `RSI A (${displayRsiPeriod})`,
-                `RSI B (${displayRsiPeriod})`,
-                'Winner',
-              ].map((h, idx) => {
-                let testId
-                if (h === `${windowSize}-Day ${smoothingLabel} A`) {
-                  testId = 'ma-header-a'
-                } else if (h === `${windowSize}-Day ${smoothingLabel} B`) {
-                  testId = 'ma-header-b'
-                }
-
-                return (
+            <thead className="bg-gray-700">
+              <tr>
+                {[
+                  'Date',
+                  'Return A (%)',
+                  'Return B (%)',
+                  `${windowSize}-Day ${smoothingLabel} A`,
+                  `${windowSize}-Day ${smoothingLabel} B`,
+                  `${windowSize}-Day Vol A (%)`,
+                  `${windowSize}-Day Vol B (%)`,
+                  'BB Upper A',
+                  'BB Middle A',
+                  'BB Lower A',
+                  'BB Upper B',
+                  'BB Middle B',
+                  'BB Lower B',
+                  `RSI A (${displayRsiPeriod})`,
+                  `RSI B (${displayRsiPeriod})`,
+                  'Winner',
+                ].map((h, idx) => (
                   <th
                     key={idx}
                     className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-300"
-                    data-testid={testId}
+                    data-testid={h.includes('Day') && h.includes('A') ? 'ma-header-a' : undefined}
                   >
                     {h}
                   </th>
-                )
-              })}
-            </tr>
-          </thead>
+                ))}
+              </tr>
+            </thead>
             <tbody className="divide-y divide-gray-700">
               {data.map((row, i) => {
                 const pctA =

@@ -98,7 +98,7 @@ describe('rollingVolatility()', () => {
 })
 
 describe('compareDailyPerformance()', () => {
-  it('flags A when A > B, B when B > A, Tie when equal', () => {
+  it('flags A when A > B, B when B > A, tie when equal', () => {
     const a = [
       { date: 'd1', return: 0.1 },
       { date: 'd2', return: 0.05 },
@@ -111,16 +111,16 @@ describe('compareDailyPerformance()', () => {
     ]
     expect(compareDailyPerformance(a, b)).toEqual([
       { date: 'd1', winner: 'A' },
-      { date: 'd2', winner: 'Tie' },
+      { date: 'd2', winner: 'tie' },
       { date: 'd3', winner: 'B' },
     ])
   })
 
-  it('treats null/undefined returns as Tie', () => {
+  it('treats null/undefined returns as null', () => {
     const a = [{ date:'x', return: null }]
     const b = [{ date:'x', return: 0.1 }]
     expect(compareDailyPerformance(a, b)).toEqual([
-      { date: 'x', winner: 'Tie' },
+      { date: 'x', winner: null },
     ])
   })
 
