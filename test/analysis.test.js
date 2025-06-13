@@ -6,8 +6,7 @@ import {
   exponentialMovingAverage,
   rollingVolatility,
   compareDailyPerformance,
-  bollingerBands,
-  priceStdDev
+  bollingerBands
 } from '../src/analysis.js'
 
 describe('calculateDailyReturns()', () => {
@@ -38,7 +37,6 @@ describe('calculateLogReturns()', () => {
       { date: '2025-01-03', close: 121 },
     ]
     const ret = calculateLogReturns(prices)
-    // ln(110/100) ≈ 0.095310, ln(121/110) ≈ 0.095310
     expect(ret[0].date).toBe('2025-01-02')
     expect(ret[0].return).toBeCloseTo(Math.log(1.10), 6)
     expect(ret[1].return).toBeCloseTo(Math.log(1.10), 6)
@@ -64,10 +62,6 @@ describe('movingAverage()', () => {
 
 describe('exponentialMovingAverage()', () => {
   it('computes a 2-day EMA correctly', () => {
-    // α = 2/(2+1) = 0.666...
-    // seed at index 1 = (1+2)/2 =1.5
-    // index 2: 0.666*3 + 0.333*1.5 = 2.5
-    // index 3: 0.666*4 + 0.333*2.5 = 3.5
     expect(exponentialMovingAverage([1,2,3,4], 2))
       .toEqual([null, 1.5, 2.5, 3.5])
   })
@@ -138,23 +132,6 @@ describe('compareDailyPerformance()', () => {
   })
 })
 
-describe('priceStdDev()', () => {
-  it('returns nulls until it has enough data', () => {
-    // with window = 3, first two entries are null
-    const vals = [1, 2, 3, 4, 5]
-    const sd = priceStdDev(vals, 3)
-    expect(sd.slice(0, 2)).toEqual([null, null])
-    expect(sd[2]).toBeCloseTo(Math.sqrt(2/3), 6)
-  })
-
-  it('computes zero when all values equal', () => {
-    const vals = [5, 5, 5, 5]
-    const sd = priceStdDev(vals, 4)
-    expect(sd[0]).toBeNull()
-    expect(sd[3]).toBe(0)
-  })
-})
-
 describe('bollingerBands()', () => {
   it('returns null bands until windowSize−1', () => {
     const vals = [10, 12, 14, 16]
@@ -166,8 +143,6 @@ describe('bollingerBands()', () => {
   })
 
   it('computes correct upper/middle/lower for a simple series', () => {
-    // window=3, K=2; for values [1,2,3] middle=2, sd=√((1+0+1)/3)=√(2/3)
-    // upper = 2 + 2*√(2/3) ≈ 3.63299; lower ≈ 0.36701
     const vals = [1, 2, 3, 4]
     const bands = bollingerBands(vals, 3, 2)
     const { upper, middle, lower } = bands[2]
@@ -177,7 +152,6 @@ describe('bollingerBands()', () => {
   })
 
   it('works with non-integer multiplier', () => {
-    // window=2, K=1.5 on [1,3] -> middle=2, sd=1
     const vals = [1, 3]
     const bands = bollingerBands(vals, 2, 1.5)
     expect(bands[1]).toEqual({

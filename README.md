@@ -148,4 +148,11 @@ This command builds a docker image with the code of this repository and runs the
 ./build_docker.sh my_app
 docker run -t my_app ./run_tests.sh
 ```
+# Running dev
+
+This command builds a docker image with the code of this repository and runs the repository's in dev mode.
+
+```sh
+. build_docker.sh stock_analysis_refact && docker run --rm  -p 5173:5173 stock_analysis_refact ./run_dev.sh
+```
 
