@@ -6,7 +6,8 @@ import {
   exponentialMovingAverage,
   rollingVolatility,
   compareDailyPerformance,
-  bollingerBands
+  bollingerBands,
+  windowedValues
 } from '../src/analysis.js'
 
 describe('calculateDailyReturns()', () => {
@@ -159,5 +160,26 @@ describe('bollingerBands()', () => {
       upper: 2 + 1.5 * 1,
       lower: 2 - 1.5 * 1,
     })
+  })
+})
+
+
+describe('windowedValues()', () => {
+  it('throws if windowSize < 1', () => {
+    expect(() => windowedValues([1,2,3], 0, () => {}))
+      .toThrow('windowSize must be ≥1')
+  })
+
+  it('returns leading nulls until window is full', () => {
+    const fn = slice => slice.reduce((a,b)=>a+b, 0)
+    const result = windowedValues([10,20,30,40], 3, fn)
+    // positions 0 & 1 should be null, then sums of each 3-item window
+    expect(result).toEqual([null, null, 60, 90])
+  })
+
+  it('applies custom function correctly', () => {
+    const fn = slice => slice.length
+    expect(windowedValues([1,2,3,4,5], 2, fn))
+      .toEqual([null, 2, 2, 2, 2])
   })
 })
