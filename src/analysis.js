@@ -1,5 +1,23 @@
 // src/analysis.js
-//Version 1
+// Version 2 - Refactored with windowedValues helper
+
+/**
+ * Helper function to apply a calculation function over a sliding window
+ * values: [T, …] - array of values to process
+ * windowSize: integer - size of the sliding window
+ * fn: (slice: T[]) => U - function to apply to each window
+ * returns: [U | null, …] - results with null for positions before window is complete
+ */
+function windowedValues(values, windowSize, fn) {
+  if (windowSize < 1) throw new Error('windowSize must be ≥1')
+  
+  return values.map((_, i, arr) => {
+    if (i < windowSize - 1) return null
+    const slice = arr.slice(i - windowSize + 1, i + 1)
+    return fn(slice)
+  })
+}
+
 /**
  * prices: [{ date, close }, …]
  * returns: [{ date, return }, …]
@@ -17,12 +35,9 @@ export function calculateDailyReturns(prices) {
  * returns: [null, …, average, …]
  */
 export function movingAverage(values, windowSize) {
-  if (windowSize < 1) throw new Error('windowSize must be ≥1')
-  return values.map((_, i, arr) => {
-    if (i < windowSize - 1) return null
-    const slice = arr.slice(i - windowSize + 1, i + 1)
+  return windowedValues(values, windowSize, slice => {
     const sum = slice.reduce((a, b) => a + b, 0)
-    return sum / windowSize
+    return sum / slice.length
   })
 }
 
@@ -32,13 +47,9 @@ export function movingAverage(values, windowSize) {
  * returns: [null, …, volatility, …]  (std-dev over window)
  */
 export function rollingVolatility(returnsArr, windowSize) {
-  if (windowSize < 1) throw new Error('windowSize must be ≥1')
-  return returnsArr.map((_, i, arr) => {
-    if (i < windowSize - 1) return null
-    const slice = arr.slice(i - windowSize + 1, i + 1)
-    const mean = slice.reduce((sum, r) => sum + r, 0) / windowSize
-    const variance =
-      slice.reduce((sum, r) => sum + (r - mean) ** 2, 0) / windowSize
+  return windowedValues(returnsArr, windowSize, slice => {
+    const mean = slice.reduce((sum, r) => sum + r, 0) / slice.length
+    const variance = slice.reduce((sum, r) => sum + (r - mean) ** 2, 0) / slice.length
     return Math.sqrt(variance)
   })
 }
@@ -131,42 +142,28 @@ export function priceStdDev(values) {
  * returns: [{ upper, middle, lower }, …]
  */
 export function bollingerBands(values, windowSize, multiplier) {
-  if (windowSize < 1) throw new Error('windowSize must be ≥1')
-  
-  const result = []
-  
-  for (let i = 0; i < values.length; i++) {
-    if (i < windowSize - 1) {
-      result.push({ upper: null, middle: null, lower: null })
-      continue
-    }
-    
-    const slice = values.slice(i - windowSize + 1, i + 1)
-    const middle = slice.reduce((sum, val) => sum + val, 0) / windowSize
+  return windowedValues(values, windowSize, slice => {
+    const middle = slice.reduce((sum, val) => sum + val, 0) / slice.length
     
     // Calculate standard deviation for the window
-    const variance = slice.reduce((sum, val) => sum + Math.pow(val - middle, 2), 0) / windowSize
+    const variance = slice.reduce((sum, val) => sum + Math.pow(val - middle, 2), 0) / slice.length
     const stdDev = Math.sqrt(variance)
     
-    result.push({
+    return {
       upper: middle + (multiplier * stdDev),
       middle,
       lower: middle - (multiplier * stdDev)
-    })
-  }
-  
-  return result
+    }
+  }).map(band => band || { upper: null, middle: null, lower: null })
 }
 
 /**
  * values: [number, …], period: integer
- * returns: [number, …]  (RSI values)
+ * returns: [number, …]  (RSI values using a sliding window approach)
  */
 export function relativeStrengthIndex(values, period) {
   if (period < 1) throw new Error('period must be ≥1')
   if (values.length < period + 1) throw new Error('Need more data points for RSI calculation')
-  
-  const result = Array(values.length).fill(null)
   
   // Calculate price changes
   const changes = []
@@ -174,36 +171,60 @@ export function relativeStrengthIndex(values, period) {
     changes.push(values[i] - values[i - 1])
   }
   
-  // Initial averages using first 'period' changes
-  let avgGain = 0
-  let avgLoss = 0
-  
-  for (let i = 0; i < period; i++) {
-    const change = changes[i]
-    if (change > 0) avgGain += change
-    else if (change < 0) avgLoss += Math.abs(change)
-  }
-  
-  avgGain /= period
-  avgLoss /= period
-  
-  // Calculate first RSI
-  let rs = avgGain / (avgLoss === 0 ? 1 : avgLoss)
-  result[period] = 100 - (100 / (1 + rs))
-  
-  // Use Wilder's smoothing for subsequent values
-  for (let i = period + 1; i < values.length; i++) {
-    const change = changes[i - 1]
-    const gain = change > 0 ? change : 0
-    const loss = change < 0 ? Math.abs(change) : 0
+  // Use windowedValues for initial RSI calculations
+  const initialRsi = windowedValues(changes.slice(0, period), period, slice => {
+    let avgGain = 0
+    let avgLoss = 0
     
-    // Wilder's smoothing formula
-    avgGain = ((avgGain * (period - 1)) + gain) / period
-    avgLoss = ((avgLoss * (period - 1)) + loss) / period
+    for (const change of slice) {
+      if (change > 0) avgGain += change
+      else if (change < 0) avgLoss += Math.abs(change)
+    }
     
-    rs = avgGain / (avgLoss === 0 ? 1 : avgLoss)
-    result[i] = 100 - (100 / (1 + rs))
+    avgGain /= period
+    avgLoss /= period
+    
+    const rs = avgGain / (avgLoss === 0 ? 1 : avgLoss)
+    return 100 - (100 / (1 + rs))
+  })
+  
+  // Build result array with proper positioning
+  const result = Array(values.length).fill(null)
+  
+  // Set the first RSI value
+  if (initialRsi[period - 1] !== null) {
+    result[period] = initialRsi[period - 1]
+    
+    // Calculate initial averages for Wilder's smoothing
+    let avgGain = 0
+    let avgLoss = 0
+    
+    for (let i = 0; i < period; i++) {
+      const change = changes[i]
+      if (change > 0) avgGain += change
+      else if (change < 0) avgLoss += Math.abs(change)
+    }
+    
+    avgGain /= period
+    avgLoss /= period
+    
+    // Use Wilder's smoothing for subsequent values
+    for (let i = period + 1; i < values.length; i++) {
+      const change = changes[i - 1]
+      const gain = change > 0 ? change : 0
+      const loss = change < 0 ? Math.abs(change) : 0
+      
+      // Wilder's smoothing formula
+      avgGain = ((avgGain * (period - 1)) + gain) / period
+      avgLoss = ((avgLoss * (period - 1)) + loss) / period
+      
+      const rs = avgGain / (avgLoss === 0 ? 1 : avgLoss)
+      result[i] = 100 - (100 / (1 + rs))
+    }
   }
   
   return result
 }
+
+// Export the helper for potential external use or testing
+export { windowedValues }
