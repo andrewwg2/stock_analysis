@@ -85,14 +85,14 @@ The app is Docker-deployable:
 
    ```bash
    docker run --rm -it \
-     -p 3000:3000 \
+     -p 5173:5173 \
      -v "$PWD":/app \
      -w /app \
      stock-analysis \
      sh -c "npm install && npm start"
    ```
 
-3. In your host browser, visit [http://localhost:3000](http://localhost:3000).
+3. In your host browser, visit [http://localhost:5173](http://localhost:5173).
 
 > **Tip:** The `-v "$PWD":/app` bind-mounts your code so you can tweak files locally and see hot reloads.
 
@@ -153,6 +153,6 @@ docker run -t my_app ./run_tests.sh
 This command builds a docker image with the code of this repository and runs the repository's in dev mode.
 
 ```sh
-. build_docker.sh stock_analysis_refact && docker run --rm  -p 5173:5173 stock_analysis_refact ./run_dev.sh
+. build_docker.sh stock_analysis_refact && docker run --rm  -p -it 5173:5173 stock_analysis_refact ./run_dev.sh
 ```
 
