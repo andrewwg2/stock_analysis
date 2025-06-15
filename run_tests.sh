@@ -1,4 +1,4 @@
 #!/bin/sh
 
 export CI=true
-npm test 
+npm run coverage 

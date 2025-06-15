@@ -7,7 +7,9 @@ import {
   rollingVolatility,
   compareDailyPerformance,
   bollingerBands,
-  windowedValues
+  windowedValues,
+  priceStdDev,
+  relativeStrengthIndex 
 } from '../src/analysis.js'
 
 describe('calculateDailyReturns()', () => {
@@ -182,4 +184,37 @@ describe('windowedValues()', () => {
     expect(windowedValues([1,2,3,4,5], 2, fn))
       .toEqual([null, 2, 2, 2, 2])
   })
+})
+
+
+describe('priceStdDev()', () => {
+  it('computes the std-dev of [2,4,4,4,5,5,7,9] as ~2', () => {
+    const vals = [2,4,4,4,5,5,7,9]
+    expect(priceStdDev(vals)).toBeCloseTo(2, 6)
+  })
+  it('throws if fewer than 2 points', () => {
+    expect(() => priceStdDev([1])).toThrow('Need ≥2 data points')
+  })
+})
+
+describe('relativeStrengthIndex()', () => {
+  it('throws when period<1 or too few data points', () => {
+    expect(() => relativeStrengthIndex([1,2,3], 0))
+      .toThrow('period must be ≥1')
+    expect(() => relativeStrengthIndex([1,2], 2))
+      .toThrow('Need more data points for RSI calculation')
+  })
+
+  it('returns 50 when there are only gains for period=2', () => {
+  const vals = [1, 2, 3, 4, 5]
+  const rsi = relativeStrengthIndex(vals, 2)
+
+  // first two are null
+  expect(rsi.slice(0, 2)).toEqual([null, null])
+
+  // for pure gains, function yields RSI=50
+  expect(rsi[2]).toBeCloseTo(50, 6)
+  expect(rsi[3]).toBeCloseTo(50, 6)
+  expect(rsi[4]).toBeCloseTo(50, 6)
+})
 })
